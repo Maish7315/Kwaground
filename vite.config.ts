@@ -5,7 +5,7 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './',   // 👈 This fixes white screen on Render/Netlify/GitHub Pages
+  base: '/',   // 👈 This fixes white screen on Render/Netlify/GitHub Pages
   build: {
     outDir: 'dist'
   },
