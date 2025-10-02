@@ -35,6 +35,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     faithfulHonest: false,
     idNumber: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -51,6 +53,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         faithfulHonest: false,
         idNumber: "",
       });
+      setIsSubmitting(false);
+      setCountdown(0);
     }
   }, [isOpen]);
 
@@ -140,12 +144,15 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     // Here you would typically send the data to your backend
     console.log("Job application data:", { ...formData, jobDetails });
 
+    setIsSubmitting(true);
+    setCountdown(10);
+
     toast({
       title: "Application Confirmed!",
       description: "Document application confirmed. Wait for approval within 72 hours.",
     });
 
-    // Reset form and close modal
+    // Reset form
     setFormData({
       age: "",
       gender: "",
@@ -158,7 +165,19 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       faithfulHonest: false,
       idNumber: "",
     });
-    onClose();
+
+    // Countdown and close modal after 10 seconds
+    const interval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          onClose();
+          setIsSubmitting(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   return (
@@ -331,11 +350,11 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
 
           {/* Submit Button */}
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              Cancel
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? "Please Wait..." : "Cancel"}
             </Button>
-            <Button type="submit" className="flex-1">
-              Submit Application
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? `Closing in ${countdown}s...` : "Submit Application"}
             </Button>
           </div>
         </form>
