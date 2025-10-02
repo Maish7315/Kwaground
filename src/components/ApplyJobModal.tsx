@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, AlertTriangle, User, Phone, MapPin, GraduationCap } from "lucide-react";
+import { AlertTriangle, User, Phone, MapPin, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ApplyJobModalProps {
@@ -33,34 +33,26 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     brotherSisterName: "",
     policyAgreed: false,
     faithfulHonest: false,
-    birthCertificate: null as File | null,
     idNumber: "",
   });
 
-  const handleInputChange = (field: string, value: string | boolean | File | null) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (file && file.type !== "application/pdf" && !file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please upload a PDF or image file for birth certificate.",
-        variant: "destructive",
-      });
-      return;
-    }
-    handleInputChange("birthCertificate", file);
+  const validatePhoneNumber = (number: string): boolean => {
+    // Accept only numbers starting with 07 or +2547
+    const phoneRegex = /^(\+2547|07)\d{8}$/;
+    return phoneRegex.test(number.replace(/\s+/g, ''));
   };
 
-  const validateKenyanSafaricomNumber = (number: string): boolean => {
-    // Kenyan Safaricom numbers: 0712, 0713, 0714, 0715, 0716, 0717, 0718, 0719, 0720, 0721, 0722, 0723, 0724, 0725, 0726, 0727, 0728, 0729
-    const safaricomRegex = /^(\+254|0)(712|713|714|715|716|717|718|719|720|721|722|723|724|725|726|727|728|729)\d{6}$/;
-    return safaricomRegex.test(number);
+  const validateNames = (name: string): boolean => {
+    // Check if name contains at least two words (separated by space)
+    const nameParts = name.trim().split(/\s+/);
+    return nameParts.length >= 2 && nameParts.every(part => part.length > 0);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,15 +61,16 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     // Validation
     if (!formData.age || !formData.gender || !formData.educationLevel || !formData.location ||
         !formData.phoneNumber || !formData.parentGuardianName || !formData.brotherSisterName ||
-        !formData.idNumber || !formData.birthCertificate) {
+        !formData.idNumber) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields and upload your birth certificate.",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
     }
 
+    // Age validation - must be 18 or above
     if (parseInt(formData.age) < 18) {
       toast({
         title: "Age Restriction",
@@ -87,10 +80,31 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       return;
     }
 
-    if (!validateKenyanSafaricomNumber(formData.phoneNumber)) {
+    // Phone number validation - only accept 07 or +2547 prefixes
+    if (!validatePhoneNumber(formData.phoneNumber)) {
       toast({
         title: "Invalid Phone Number",
-        description: "Please enter a valid Kenyan Safaricom phone number.",
+        description: "Only phone numbers starting with 07 or +2547 are accepted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Parent/Guardian name validation - must have at least two names
+    if (!validateNames(formData.parentGuardianName)) {
+      toast({
+        title: "Invalid Parent/Guardian Name",
+        description: "Please provide the full name (at least two names) of your parent or guardian.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Brother/Sister name validation - must have at least two names (unless N/A)
+    if (formData.brotherSisterName.toLowerCase() !== 'n/a' && !validateNames(formData.brotherSisterName)) {
+      toast({
+        title: "Invalid Brother/Sister Name",
+        description: "Please provide the full name (at least two names) of your brother/sister, or enter 'N/A' if none.",
         variant: "destructive",
       });
       return;
@@ -109,8 +123,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     console.log("Job application data:", { ...formData, jobDetails });
 
     toast({
-      title: "Application Submitted!",
-      description: "Your job application has been submitted successfully. We'll contact you soon.",
+      title: "Application Confirmed!",
+      description: "Document application confirmed. Wait for approval within 72 hours.",
     });
 
     // Reset form and close modal
@@ -124,7 +138,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       brotherSisterName: "",
       policyAgreed: false,
       faithfulHonest: false,
-      birthCertificate: null,
       idNumber: "",
     });
     onClose();
@@ -218,7 +231,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
           <div className="space-y-2">
             <Label htmlFor="phoneNumber" className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
-              Phone Number (Safaricom Only) *
+              Phone Number *
             </Label>
             <Input
               id="phoneNumber"
@@ -228,7 +241,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
               required
             />
             <p className="text-sm text-muted-foreground">
-              Only Kenyan Safaricom numbers are accepted for contact purposes.
+              Only numbers starting with 07 or +2547 are accepted.
             </p>
           </div>
 
@@ -272,23 +285,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             />
           </div>
 
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="birthCertificate" className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              Birth Certificate Upload *
-            </Label>
-            <Input
-              id="birthCertificate"
-              type="file"
-              accept=".pdf,image/*"
-              onChange={handleFileChange}
-              required
-            />
-            <p className="text-sm text-muted-foreground">
-              Upload your birth certificate as PDF or image file
-            </p>
-          </div>
 
           {/* Agreements */}
           <div className="space-y-4">
