@@ -25,7 +25,7 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
     email: user?.email || "customer@example.com",
     amount: amount * 100, // Paystack expects amount in kobo (multiply by 100)
     currency: "KES",
-    publicKey: "pk_test_YOUR_VALID_PAYSTACK_PUBLIC_KEY", // Replace with your actual valid Paystack public key
+    publicKey: "pk_test_f90bcd3c9d65fcf3cd75613000d9ac33dbb6ddc8", // Your Paystack public key
     channels: ["mobile_money"], // Force M-Pesa for Kenyan users
   };
 
