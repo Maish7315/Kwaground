@@ -117,7 +117,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center">
             Welcome to KwaGround
