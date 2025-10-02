@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import PostJobModal from "@/components/PostJobModal";
+import PremiumJobModal from "@/components/PremiumJobModal";
 import ApplyJobModal from "@/components/ApplyJobModal";
 import SearchBar from "@/components/SearchBar";
 import JobCard from "@/components/JobCard";
@@ -290,7 +290,7 @@ const Jobs = () => {
 
       <Footer />
 
-      <PostJobModal
+      <PremiumJobModal
         isOpen={postJobModalOpen}
         onClose={() => setPostJobModalOpen(false)}
       />
