@@ -7,6 +7,7 @@ import { Check, Star, Zap, Crown, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "./LoginModal";
+import MpesaPaymentModal from "./MpesaPaymentModal";
 
 interface PremiumJobModalProps {
   isOpen: boolean;
@@ -18,12 +19,13 @@ const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
   const { isAuthenticated, user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const plans = [
     {
       id: "basic",
       name: "Basic Post",
-      price: 0,
+      price: 100,
       description: "Standard job posting",
       features: [
         "Posted for 7 days",
@@ -101,13 +103,18 @@ const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
       onClose();
     } else {
       // Paid plan - proceed to payment
-      toast({
-        title: `${plan?.name} Plan Selected`,
-        description: `Proceeding to payment of KSh ${plan?.price}...`,
-      });
-      // Here you would integrate payment gateway
-      // For now, just show a message
+      setShowPaymentModal(true);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    const plan = plans.find(p => p.id === selectedPlan);
+    toast({
+      title: "Payment Completed!",
+      description: `Your ${plan?.name} plan is now active. You can now post your job.`,
+    });
+    // Here you would open the PostJobModal with the paid plan
+    onClose();
   };
 
   return (
@@ -196,6 +203,16 @@ const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
             handleProceed();
           }}
         />
+
+        {selectedPlan && (
+          <MpesaPaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => setShowPaymentModal(false)}
+            amount={plans.find(p => p.id === selectedPlan)?.price || 0}
+            planName={plans.find(p => p.id === selectedPlan)?.name || ''}
+            onSuccess={handlePaymentSuccess}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
