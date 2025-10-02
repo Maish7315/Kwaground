@@ -63,17 +63,6 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
     }
   };
 
-  // Load Paystack script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   const handlePayment = () => {
     console.log("Initiating Paystack payment");
