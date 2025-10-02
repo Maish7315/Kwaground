@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -5,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Smartphone, CreditCard, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { PaystackButton } from "react-paystack";
 
 interface MpesaPaymentModalProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
   };
 
   const handlePaystackSuccess = (reference: { reference: string }) => {
+    console.log("Payment successful:", reference);
     toast({
       title: "Payment Successful!",
       description: `Transaction ${reference.reference} completed successfully.`,
@@ -39,6 +40,7 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
   };
 
   const handlePaystackClose = () => {
+    console.log("Payment closed/cancelled");
     toast({
       title: "Payment Cancelled",
       description: "Payment was cancelled. You can try again.",
@@ -46,11 +48,64 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
     });
   };
 
-  const componentProps = {
-    ...paystackConfig,
-    text: `Pay KSh ${amount} via M-Pesa`,
-    onSuccess: handlePaystackSuccess,
-    onClose: handlePaystackClose,
+  const handlePaymentClick = () => {
+    console.log("Payment button clicked, opening Paystack");
+    // Check if Paystack is available
+    if (typeof window !== 'undefined' && (window as any).PaystackPop) {
+      console.log("Paystack is available");
+    } else {
+      console.error("Paystack not loaded");
+      toast({
+        title: "Payment Error",
+        description: "Payment system not loaded. Please refresh and try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load Paystack script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handlePayment = () => {
+    console.log("Initiating Paystack payment");
+
+    if (typeof window === 'undefined') {
+      toast({
+        title: "Error",
+        description: "Payment system not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const paystack = (window as any).PaystackPop;
+
+    if (!paystack) {
+      console.error("Paystack not loaded");
+      toast({
+        title: "Payment Error",
+        description: "Payment system not loaded. Please refresh and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const handler = paystack.setup({
+      ...paystackConfig,
+      onSuccess: handlePaystackSuccess,
+      onClose: handlePaystackClose,
+    });
+
+    handler.openIframe();
   };
 
   return (
@@ -59,17 +114,9 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Smartphone className="w-5 h-5" />
-            Paystack M-Pesa Payment
+            M-Pesa Payment
           </DialogTitle>
         </DialogHeader>
-
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Important:</strong> You need to add your Paystack public key to the code.
-            Replace "pk_test_your_paystack_public_key_here" with your actual key.
-          </AlertDescription>
-        </Alert>
 
         <Card>
           <CardHeader>
@@ -102,8 +149,8 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
         <Alert>
           <Smartphone className="h-4 w-4" />
           <AlertDescription>
-            Clicking the button below will open Paystack's secure payment page.
-            Select M-Pesa as your payment method and follow the prompts.
+            Clicking the button below will open a secure payment popup.
+            Select M-Pesa as your payment method and follow the prompts on your phone.
           </AlertDescription>
         </Alert>
 
@@ -111,10 +158,9 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
           <Button type="button" variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <PaystackButton
-            {...componentProps}
-            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 rounded-md font-medium"
-          />
+          <Button onClick={handlePayment} className="flex-1">
+            Pay KSh {amount} via M-Pesa
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
