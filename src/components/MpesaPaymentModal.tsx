@@ -105,7 +105,13 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
       onClose: handlePaystackClose,
     });
 
-    handler.openIframe();
+    // Try popup first, fallback to iframe if popup fails
+    try {
+      handler.openPopup();
+    } catch (error) {
+      console.log("Popup failed, trying iframe:", error);
+      handler.openIframe();
+    }
   };
 
   return (
