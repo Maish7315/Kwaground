@@ -7,6 +7,33 @@ import { Smartphone, CreditCard, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Paystack type definitions
+interface PaystackSetupOptions {
+  key: string;
+  email: string;
+  amount: number;
+  currency: string;
+  ref: string;
+  channels: string[];
+  onSuccess: (response: { reference: string }) => void;
+  onClose: () => void;
+  publicKey?: string; // Optional since key is required
+  reference?: string; // Optional since ref is required
+}
+
+interface PaystackInstance {
+  setup: (options: PaystackSetupOptions) => {
+    openIframe: () => void;
+    openPopup: () => void;
+  };
+}
+
+declare global {
+  interface Window {
+    PaystackPop?: PaystackInstance;
+  }
+}
+
 interface MpesaPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,11 +48,11 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
 
   // Paystack configuration - Replace with your actual public key
   const paystackConfig = {
-    reference: `KWA-${Date.now()}`,
+    key: "pk_test_f90bcd3c9d65fcf3cd75613000d9ac33dbb6ddc8", // Your Paystack public key
+    ref: `KWA-${Date.now()}`,
     email: user?.email || "customer@example.com",
     amount: amount * 100, // Paystack expects amount in kobo (multiply by 100)
     currency: "KES",
-    publicKey: "pk_test_f90bcd3c9d65fcf3cd75613000d9ac33dbb6ddc8", // Your Paystack public key
     channels: ["mobile_money"], // Force M-Pesa for Kenyan users
   };
 
@@ -51,7 +78,7 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
   const handlePaymentClick = () => {
     console.log("Payment button clicked, opening Paystack");
     // Check if Paystack is available
-    if (typeof window !== 'undefined' && (window as any).PaystackPop) {
+    if (typeof window !== 'undefined' && window.PaystackPop) {
       console.log("Paystack is available");
     } else {
       console.error("Paystack not loaded");
@@ -76,7 +103,7 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
       return;
     }
 
-    const paystack = (window as any).PaystackPop;
+    const paystack = window.PaystackPop;
 
     if (!paystack) {
       console.error("Paystack not loaded");
@@ -105,12 +132,18 @@ const MpesaPaymentModal = ({ isOpen, onClose, amount, planName, onSuccess }: Mpe
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto"
+        aria-describedby="payment-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Smartphone className="w-5 h-5" />
             M-Pesa Payment
           </DialogTitle>
+          <p id="payment-description" className="text-sm text-muted-foreground">
+            Complete your payment securely using M-Pesa STK Push.
+          </p>
         </DialogHeader>
 
         <Card>

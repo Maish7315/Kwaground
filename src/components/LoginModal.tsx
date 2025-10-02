@@ -117,11 +117,17 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-md w-[95vw] max-h-[90vh] overflow-y-auto"
+        aria-describedby="auth-description"
+      >
         <DialogHeader>
           <DialogTitle className="text-center">
             Welcome to KwaGround
           </DialogTitle>
+          <p id="auth-description" className="text-sm text-muted-foreground text-center">
+            Sign in to your account or create a new one to access premium features.
+          </p>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -182,12 +182,18 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        aria-describedby="job-application-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
             Apply for: {jobDetails?.title}
           </DialogTitle>
+          <p id="job-application-description" className="text-sm text-muted-foreground">
+            Fill out this form to apply for the selected job position. All fields are required.
+          </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">

@@ -119,13 +119,16 @@ const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto"
+        aria-describedby="premium-plans-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-center">
             <Zap className="w-5 h-5" />
             Choose Your Job Posting Plan
           </DialogTitle>
-          <p className="text-muted-foreground text-center">
+          <p id="premium-plans-description" className="text-muted-foreground text-center">
             Select the plan that best fits your hiring needs
           </p>
         </DialogHeader>
