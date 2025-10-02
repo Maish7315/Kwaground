@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Star, Zap, Crown } from "lucide-react";
+import { Check, Star, Zap, Crown, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginModal from "./LoginModal";
 
 interface PremiumJobModalProps {
   isOpen: boolean;
@@ -13,7 +15,9 @@ interface PremiumJobModalProps {
 
 const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
   const { toast } = useToast();
+  const { isAuthenticated, user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const plans = [
     {
@@ -76,6 +80,12 @@ const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
         description: "Please select a posting plan to continue.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check authentication for paid plans
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
       return;
     }
 
@@ -176,6 +186,16 @@ const PremiumJobModal = ({ isOpen, onClose }: PremiumJobModalProps) => {
             </p>
           </div>
         )}
+
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={() => {
+            setShowLoginModal(false);
+            // After login, proceed with the selected plan
+            handleProceed();
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
