@@ -4,13 +4,22 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/',   // 👈 Netlify & Render expect absolute root, not relative
+  base: '/',
   build: {
     outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 })
