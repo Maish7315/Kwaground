@@ -33,6 +33,7 @@ export interface JobApplication {
   job_location: string | null;
   job_pay: string | null;
   job_type: string | null;
+  full_name: string;
   age: string;
   gender: string;
   education_level: string;
@@ -40,9 +41,14 @@ export interface JobApplication {
   phone_number: string;
   parent_guardian_name: string;
   brother_sister_name: string;
-  id_number: string;
+  has_id: boolean;
+  id_number: string | null;
+  id_card_url: string | null;
+  has_birth_certificate: boolean;
+  birth_certificate_url: string | null;
+  is_kenyan: boolean;
+  country: string | null;
   policy_agreed: boolean;
   faithful_honest: boolean;
-  birth_certificate_url: string | null;
   status: string;
 }

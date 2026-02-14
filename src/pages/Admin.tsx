@@ -77,30 +77,44 @@ const Admin = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p><strong>Name:</strong> {app.parent_guardian_name}</p>
+                    <p><strong>Full Name:</strong> {app.full_name}</p>
                     <p><strong>Age:</strong> {app.age}</p>
                     <p><strong>Gender:</strong> {app.gender}</p>
                     <p><strong>Education:</strong> {app.education_level}</p>
                     <p><strong>Location:</strong> {app.location}</p>
                     <p><strong>Phone:</strong> {app.phone_number}</p>
-                    <p><strong>ID Number:</strong> {app.id_number}</p>
                     <p><strong>Parent/Guardian:</strong> {app.parent_guardian_name}</p>
                     <p><strong>Sibling:</strong> {app.brother_sister_name}</p>
+                    <p><strong>Citizenship:</strong> {app.is_kenyan ? 'Kenyan' : app.country}</p>
                   </div>
                   <div>
-                    <p><strong>Policy Agreed:</strong> {app.policy_agreed ? 'Yes' : 'No'}</p>
-                    <p><strong>Faithful & Honest:</strong> {app.faithful_honest ? 'Yes' : 'No'}</p>
-                    {app.birth_certificate_url && (
-                      <div className="mt-4">
-                        <Button 
-                          onClick={() => setSelectedImage(app.birth_certificate_url || null)}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Birth Certificate
-                        </Button>
-                      </div>
+                    <p><strong>Has National ID:</strong> {app.has_id ? 'Yes' : 'No'}</p>
+                    {app.has_id && (
+                      <>
+                        <p><strong>ID Number:</strong> {app.id_number}</p>
+                        {app.id_card_url && (
+                          <Button 
+                            onClick={() => setSelectedImage(app.id_card_url || null)}
+                            className="flex items-center gap-2 mt-2"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View ID Card
+                          </Button>
+                        )}
+                      </>
                     )}
+                    <p className="mt-2"><strong>Has Birth Certificate:</strong> {app.has_birth_certificate ? 'Yes' : 'No'}</p>
+                    {app.has_birth_certificate && app.birth_certificate_url && (
+                      <Button 
+                        onClick={() => setSelectedImage(app.birth_certificate_url || null)}
+                        className="flex items-center gap-2 mt-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Birth Certificate
+                      </Button>
+                    )}
+                    <p className="mt-2"><strong>Policy Agreed:</strong> {app.policy_agreed ? 'Yes' : 'No'}</p>
+                    <p><strong>Faithful & Honest:</strong> {app.faithful_honest ? 'Yes' : 'No'}</p>
                   </div>
                 </div>
               </CardContent>
