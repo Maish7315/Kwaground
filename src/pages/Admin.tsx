@@ -78,6 +78,7 @@ const Admin = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p><strong>Full Name:</strong> {app.full_name}</p>
+                    <p><strong>Email:</strong> {app.email}</p>
                     <p><strong>Age:</strong> {app.age}</p>
                     <p><strong>Gender:</strong> {app.gender}</p>
                     <p><strong>Education:</strong> {app.education_level}</p>

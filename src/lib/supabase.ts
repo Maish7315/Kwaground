@@ -34,6 +34,7 @@ export interface JobApplication {
   job_pay: string | null;
   job_type: string | null;
   full_name: string;
+  email: string;
   age: string;
   gender: string;
   education_level: string;

@@ -26,6 +26,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     fullName: "",
+    email: "",
     age: "",
     gender: "",
     educationLevel: "",
@@ -87,7 +88,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     e.preventDefault();
 
     // Validation - ID is mandatory if hasId is true, otherwise birth certificate is mandatory
-    if (!formData.fullName || !formData.age || !formData.gender || !formData.educationLevel || 
+    if (!formData.fullName || !formData.email || !formData.age || !formData.gender || !formData.educationLevel || 
         !formData.location || !formData.phoneNumber || !formData.parentGuardianName || 
         !formData.brotherSisterName) {
       toast({
@@ -188,6 +189,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         job_pay: jobDetails?.pay || null,
         job_type: jobDetails?.type || null,
         full_name: formData.fullName,
+        email: formData.email,
         age: formData.age,
         gender: formData.gender,
         education_level: formData.educationLevel,
@@ -224,12 +226,14 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
 
       toast({
         title: "Application Submitted!",
-        description: "Your job application has been submitted successfully. We'll contact you soon.",
+        description: "Your job application has been submitted successfully. We'll contact you soon on phone or email.",
       });
 
       // Reset form and close modal
       setFormData({
         fullName: "",
+        email: "",
+        email: "",
         age: "",
         gender: "",
         educationLevel: "",
@@ -246,50 +250,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         country: "",
         policyAgreed: false,
         faithfulHonest: false,
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error submitting application:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Apply for: {jobDetails?.title}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Alert className="border-orange-200 bg-orange-50">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              <strong>Important Warning:</strong> Kindly fill in your correct details. Once you miss input your details and give a fraud name, you will lose a chance to get the job you have chosen.
-            </AlertDescription>
-          </Alert>
-
-          {/* Personal Information */}
-          <div className="space-y-2">
-            <Label htmlFor="fullName" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Full Name *
-            </Label>
-            <Input
-              id="fullName"
-              placeholder="Your full name"
-              value={formData.fullName}
-              onChange={(e) => handleInputChange("fullName", e.target.value)}
-              required
-            />
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
