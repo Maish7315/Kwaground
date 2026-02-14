@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, AlertTriangle, User, Phone, MapPin, GraduationCap, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +56,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     if (file && file.type !== "application/pdf" && !file.type.startsWith("image/")) {
       toast({
         title: "Invalid File Type",
-        description: "Please upload a PDF or image file for birth certificate.",
+        description: "Please upload a PDF or image file.",
         variant: "destructive",
       });
       return;
@@ -79,7 +78,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
   };
 
   const validateKenyanSafaricomNumber = (number: string): boolean => {
-    // Kenyan phone numbers: 07 or 01 followed by 8 digits
     const kenyanRegex = /^(\+254|0)(7|1)\d{8}$/;
     return kenyanRegex.test(number);
   };
@@ -87,10 +85,9 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation - ID is mandatory if hasId is true, otherwise birth certificate is mandatory
-    if (!formData.fullName || !formData.email || !formData.age || !formData.gender || !formData.educationLevel || 
-        !formData.location || !formData.phoneNumber || !formData.parentGuardianName || 
-        !formData.brotherSisterName) {
+    if (!formData.fullName || !formData.email || !formData.age || !formData.gender || 
+        !formData.educationLevel || !formData.location || !formData.phoneNumber || 
+        !formData.parentGuardianName || !formData.brotherSisterName) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -99,7 +96,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       return;
     }
 
-    // Check ID/Birth certificate requirement
     if (formData.hasId) {
       if (!formData.idNumber || !formData.idCard) {
         toast({
@@ -110,7 +106,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         return;
       }
     } else {
-      // If no ID, birth certificate is mandatory
       if (!formData.birthCertificate) {
         toast({
           title: "Birth Certificate Required",
@@ -121,7 +116,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       }
     }
 
-    // Validate country for non-Kenyans
     if (!formData.isKenyan && !formData.country) {
       toast({
         title: "Country Required",
@@ -162,7 +156,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       let idCardData: string | null = null;
       let birthCertificateData: string | null = null;
 
-      // Convert ID card file to base64
       if (formData.idCard) {
         const reader = new FileReader();
         idCardData = await new Promise((resolve, reject) => {
@@ -172,7 +165,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         }) as string;
       }
 
-      // Convert birth certificate file to base64
       if (formData.birthCertificate) {
         const reader = new FileReader();
         birthCertificateData = await new Promise((resolve, reject) => {
@@ -182,7 +174,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         }) as string;
       }
 
-      // Prepare application data
       const applicationData = {
         job_title: jobDetails?.title || '',
         job_location: jobDetails?.location || null,
@@ -209,7 +200,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         status: 'pending'
       };
 
-      // Save to Supabase
       const { error } = await supabase
         .from('job_applications')
         .insert([applicationData]);
@@ -229,10 +219,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         description: "Your job application has been submitted successfully. We'll contact you soon on phone or email.",
       });
 
-      // Reset form and close modal
       setFormData({
         fullName: "",
-        email: "",
         email: "",
         age: "",
         gender: "",
@@ -250,6 +238,63 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         country: "",
         policyAgreed: false,
         faithfulHonest: false,
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Apply for: {jobDetails?.title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <strong>Important Warning:</strong> Kindly fill in your correct details. Once you miss input your details and give a fraud name, you will lose a chance to get the job you have chosen.
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-2">
+            <Label htmlFor="fullName" className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Full Name *
+            </Label>
+            <Input
+              id="fullName"
+              placeholder="Your full name"
+              value={formData.fullName}
+              onChange={(e) => handleInputChange("fullName", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2">
+              Email Address *
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              required
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -316,7 +361,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             </div>
           </div>
 
-          {/* Contact Information */}
           <div className="space-y-2">
             <Label htmlFor="phoneNumber" className="flex items-center gap-2">
               <Phone className="w-4 h-4" />
@@ -324,17 +368,13 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             </Label>
             <Input
               id="phoneNumber"
-              placeholder="e.g., 0712345678 or +254712345678"
+              placeholder="e.g., 0712345678"
               value={formData.phoneNumber}
               onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
               required
             />
-            <p className="text-sm text-muted-foreground">
-              Only Kenyan Safaricom numbers are accepted for contact purposes.
-            </p>
           </div>
 
-          {/* Family Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="parentGuardianName">Parent/Guardian Full Name *</Label>
@@ -356,13 +396,9 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
                 onChange={(e) => handleInputChange("brotherSisterName", e.target.value)}
                 required
               />
-              <p className="text-sm text-muted-foreground">
-                Put N/A if you have no siblings
-              </p>
             </div>
           </div>
 
-          {/* Citizenship */}
           <div className="space-y-4">
             <Label className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
@@ -394,17 +430,9 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
                     <SelectItem value="burundi">Burundi</SelectItem>
                     <SelectItem value="south_sudan">South Sudan</SelectItem>
                     <SelectItem value="ethiopia">Ethiopia</SelectItem>
-                    <SelectItem value="sudan">Sudan</SelectItem>
-                    <SelectItem value="somalia">Somalia</SelectItem>
                     <SelectItem value="nigeria">Nigeria</SelectItem>
                     <SelectItem value="ghana">Ghana</SelectItem>
                     <SelectItem value="south_africa">South Africa</SelectItem>
-                    <SelectItem value="egypt">Egypt</SelectItem>
-                    <SelectItem value="morocco">Morocco</SelectItem>
-                    <SelectItem value="algeria">Algeria</SelectItem>
-                    <SelectItem value="tunisia">Tunisia</SelectItem>
-                    <SelectItem value="libya">Libya</SelectItem>
-                    <SelectItem value="kenya">Kenya</SelectItem>
                     <SelectItem value="other">Other African Country</SelectItem>
                   </SelectContent>
                 </Select>
@@ -412,11 +440,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             )}
           </div>
 
-          {/* ID and Birth Certificate */}
           <div className="space-y-4">
             <Label>Identification Documents *</Label>
-            
-            {/* Has ID Checkbox */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="hasId"
@@ -428,7 +453,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
               </Label>
             </div>
 
-            {/* ID Upload - shown if hasId is true */}
             {formData.hasId && (
               <div className="space-y-2 pl-6 border-l-2 border-muted">
                 <Label htmlFor="idNumber">National ID Number *</Label>
@@ -453,7 +477,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
               </div>
             )}
 
-            {/* Birth Certificate Option */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="hasBirthCertificate"
@@ -487,7 +510,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             )}
           </div>
 
-          {/* Agreements */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -512,7 +534,6 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
