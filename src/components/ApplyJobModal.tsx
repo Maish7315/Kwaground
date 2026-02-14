@@ -107,6 +107,33 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     }
 
     try {
+      let birthCertificateUrl: string | null = null;
+
+      // Upload birth certificate file to Supabase Storage
+      if (formData.birthCertificate) {
+        const fileName = `${Date.now()}_${formData.birthCertificate.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('birth-certificates')
+          .upload(fileName, formData.birthCertificate);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast({
+            title: "Upload Error",
+            description: "Failed to upload birth certificate. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('birth-certificates')
+          .getPublicUrl(fileName);
+
+        birthCertificateUrl = urlData.publicUrl;
+      }
+
       // Prepare application data
       const applicationData = {
         job_title: jobDetails?.title || '',
@@ -123,7 +150,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         id_number: formData.idNumber,
         policy_agreed: formData.policyAgreed,
         faithful_honest: formData.faithfulHonest,
-        birth_certificate_url: null, // File upload would need storage bucket
+        birth_certificate_url: birthCertificateUrl,
         status: 'pending'
       };
 
