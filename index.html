@@ -25,29 +25,11 @@
     <style>
       /* Prevent white flash on page load */
       html, body, #root {
-        background-color: #f8fafc;
+        background-color: #ffffff;
         min-height: 100vh;
-      }
-      @media (prefers-color-scheme: dark) {
-        html, body, #root {
-          background-color: #0f172a;
-        }
       }
     </style>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registered:', registration);
-            })
-            .catch((error) => {
-              console.log('SW registration failed:', error);
-            });
-        });
-      }
-    </script>
   </body>
 </html>
