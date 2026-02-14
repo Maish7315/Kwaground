@@ -4,18 +4,9 @@ export function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    // Check if splash screen was already shown this session
-    const splashShown = sessionStorage.getItem('splash-shown');
-    
-    if (splashShown) {
-      setIsVisible(false);
-      return;
-    }
-
-    // Show splash for 2 seconds
+    // Show splash for 2 seconds every time the app opens
     const timer = setTimeout(() => {
       setIsVisible(false);
-      sessionStorage.setItem('splash-shown', 'true');
     }, 2000);
 
     return () => clearTimeout(timer);

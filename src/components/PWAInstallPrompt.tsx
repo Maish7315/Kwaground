@@ -18,6 +18,12 @@ export function PWAInstallPrompt() {
       return;
     }
 
+    // Only show on mobile devices (not on desktop)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile) {
+      return;
+    }
+
     // Check if user has dismissed before
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     if (dismissed) {
