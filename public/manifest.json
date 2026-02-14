@@ -1,0 +1,27 @@
+{
+  "name": "KwaGround - Fares & Jobs",
+  "short_name": "KwaGround",
+  "description": "Track matatu and boda fares in real-time. Find casual jobs across Kenya.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "jobs", "transportation"],
+  "lang": "en",
+  "dir": "ltr"
+}
