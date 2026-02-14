@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, AlertTriangle, User, Phone, MapPin, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface ApplyJobModalProps {
   isOpen: boolean;
@@ -58,12 +59,12 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
   };
 
   const validateKenyanSafaricomNumber = (number: string): boolean => {
-    // Kenyan Safaricom numbers: 0712, 0713, 0714, 0715, 0716, 0717, 0718, 0719, 0720, 0721, 0722, 0723, 0724, 0725, 0726, 0727, 0728, 0729
-    const safaricomRegex = /^(\+254|0)(712|713|714|715|716|717|718|719|720|721|722|723|724|725|726|727|728|729)\d{6}$/;
-    return safaricomRegex.test(number);
+    // Kenyan phone numbers: 07 or 01 followed by 8 digits
+    const kenyanRegex = /^(\+254|0)(7|1)\d{8}$/;
+    return kenyanRegex.test(number);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -105,29 +106,70 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    console.log("Job application data:", { ...formData, jobDetails });
+    try {
+      // Prepare application data
+      const applicationData = {
+        job_title: jobDetails?.title || '',
+        job_location: jobDetails?.location || null,
+        job_pay: jobDetails?.pay || null,
+        job_type: jobDetails?.type || null,
+        age: formData.age,
+        gender: formData.gender,
+        education_level: formData.educationLevel,
+        location: formData.location,
+        phone_number: formData.phoneNumber,
+        parent_guardian_name: formData.parentGuardianName,
+        brother_sister_name: formData.brotherSisterName,
+        id_number: formData.idNumber,
+        policy_agreed: formData.policyAgreed,
+        faithful_honest: formData.faithfulHonest,
+        birth_certificate_url: null, // File upload would need storage bucket
+        status: 'pending'
+      };
 
-    toast({
-      title: "Application Submitted!",
-      description: "Your job application has been submitted successfully. We'll contact you soon.",
-    });
+      // Save to Supabase
+      const { error } = await supabase
+        .from('job_applications')
+        .insert([applicationData]);
 
-    // Reset form and close modal
-    setFormData({
-      age: "",
-      gender: "",
-      educationLevel: "",
-      location: "",
-      phoneNumber: "",
-      parentGuardianName: "",
-      brotherSisterName: "",
-      policyAgreed: false,
-      faithfulHonest: false,
-      birthCertificate: null,
-      idNumber: "",
-    });
-    onClose();
+      if (error) {
+        console.error('Supabase error:', error);
+        toast({
+          title: "Submission Error",
+          description: "Failed to submit application. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Application Submitted!",
+        description: "Your job application has been submitted successfully. We'll contact you soon.",
+      });
+
+      // Reset form and close modal
+      setFormData({
+        age: "",
+        gender: "",
+        educationLevel: "",
+        location: "",
+        phoneNumber: "",
+        parentGuardianName: "",
+        brotherSisterName: "",
+        policyAgreed: false,
+        faithfulHonest: false,
+        birthCertificate: null,
+        idNumber: "",
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

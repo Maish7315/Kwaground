@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Phone, MapPin, Calendar, Clock, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 interface PostJobModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -54,8 +55,8 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
       return;
     }
 
-    // Phone number validation (Kenyan format)
-    const phoneRegex = /^(\+254|0)[17]\d{8}$/;
+    // Phone number validation (Kenyan format - must start with 07 or 01)
+    const phoneRegex = /^(\+254|0)(7|1)\d{8}$/;
     if (!phoneRegex.test(formData.phoneNumber)) {
       toast({
         title: "Invalid Phone Number",
@@ -65,30 +66,68 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    console.log("Job posting data:", formData);
+    try {
+      // Prepare job data
+      const jobData = {
+        job_title: formData.jobTitle,
+        location: formData.location,
+        payment_type: formData.paymentType,
+        payment_amount: parseFloat(formData.paymentAmount),
+        job_type: formData.jobType,
+        start_date: formData.startDate,
+        end_date: formData.endDate || null,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
+        phone_number: formData.phoneNumber,
+        description: formData.description || null,
+        age_confirmed: formData.ageConfirmed,
+        status: 'active'
+      };
 
-    toast({
-      title: "Job Posted Successfully!",
-      description: "Your job posting has been submitted for review. We'll contact you soon.",
-    });
+      // Save to Supabase
+      const { error } = await supabase
+        .from('jobs')
+        .insert([jobData]);
 
-    // Reset form and close modal
-    setFormData({
-      jobTitle: "",
-      location: "",
-      paymentType: "",
-      paymentAmount: "",
-      jobType: "",
-      startDate: "",
-      endDate: "",
-      startTime: "",
-      endTime: "",
-      phoneNumber: "",
-      description: "",
-      ageConfirmed: false,
-    });
-    onClose();
+      if (error) {
+        console.error('Supabase error:', error);
+        toast({
+          title: "Submission Error",
+          description: "Failed to post job. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Job Posted Successfully!",
+        description: "Your job posting has been submitted for review. We'll contact you soon.",
+      });
+
+      // Reset form and close modal
+      setFormData({
+        jobTitle: "",
+        location: "",
+        paymentType: "",
+        paymentAmount: "",
+        jobType: "",
+        startDate: "",
+        endDate: "",
+        startTime: "",
+        endTime: "",
+        phoneNumber: "",
+        description: "",
+        ageConfirmed: false,
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error posting job:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
