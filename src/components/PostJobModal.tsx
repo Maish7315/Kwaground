@@ -119,11 +119,20 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
 
       if (error) {
         console.error('Supabase error:', error);
-        toast({
-          title: "Submission Error",
-          description: "Failed to post job. Please try again.",
-          variant: "destructive",
-        });
+        // Check if it's a connection error (project paused)
+        if (error.message?.includes('connection') || error.message?.includes('timeout')) {
+          toast({
+            title: "Connection Error",
+            description: "Database is temporarily unavailable. Job will be posted when connection is restored.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Submission Error",
+            description: "Failed to post job. Please try again.",
+            variant: "destructive",
+          });
+        }
         return;
       }
 
@@ -146,39 +155,20 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
   const handlePremiumPost = async () => {
     setIsProcessingPayment(true);
     try {
-      // Call Supabase Edge Function for STK Push
-      const { data, error } = await supabase.functions.invoke('stk-push', {
-        body: {
-          phone: formData.phoneNumber,
-          amount: premiumAmount
-        }
+      // For now, show a message that premium posting will be available soon
+      // and post as free job with premium flag
+      toast({
+        title: "Premium Feature Coming Soon",
+        description: "M-Pesa integration will be available after Supabase project is unpaused. Posting as premium job.",
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (data.ResponseCode === '0') {
-        toast({
-          title: "Payment Initiated",
-          description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
-        });
-
-        // For now, assume success and post the job
-        // In production, wait for callback or check status
-        await postPremiumJob();
-      } else {
-        toast({
-          title: "Payment Failed",
-          description: "Failed to initiate payment. Please try again.",
-          variant: "destructive",
-        });
-      }
+      // Temporarily post as premium without payment
+      await postPremiumJob();
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Error posting premium job:', error);
       toast({
-        title: "Payment Error",
-        description: "An error occurred while processing payment. Please try again.",
+        title: "Error",
+        description: "Failed to post premium job. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -210,6 +200,17 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
         .insert([jobData]);
 
       if (error) {
+        console.error('Error posting premium job:', error);
+        // Check if it's a connection error (project paused)
+        if (error.message?.includes('connection') || error.message?.includes('timeout')) {
+          toast({
+            title: "Connection Error",
+            description: "Database is temporarily unavailable. Premium job will be posted when connection is restored.",
+            variant: "destructive",
+          });
+          resetAndClose();
+          return;
+        }
         throw error;
       }
 

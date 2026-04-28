@@ -4,8 +4,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = 'https://ezujitcsjhsmuyhynavy.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dWppdGNzamhzbXV5aHluYXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNzU1MzYsImV4cCI6MjA4NjY1MTUzNn0.rHLsWrBKxfMVj0uyISSvP8tGsWOxpK0WXY9tfp94eAk';
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase client with error handling
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false // Disable session persistence to avoid issues
+  }
+});
 
 // Types for database tables
 export interface Job {
@@ -24,6 +28,7 @@ export interface Job {
   description: string | null;
   age_confirmed: boolean;
   status: string;
+  is_premium?: boolean;
 }
 
 export interface JobApplication {
