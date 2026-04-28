@@ -18,7 +18,8 @@ CREATE TABLE jobs (
   phone_number TEXT NOT NULL,
   description TEXT,
   age_confirmed BOOLEAN DEFAULT false,
-  status TEXT DEFAULT 'active'
+  status TEXT DEFAULT 'active',
+  is_premium BOOLEAN DEFAULT false
 );
 
 -- Create job_applications table

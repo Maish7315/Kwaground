@@ -32,12 +32,32 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
     description: "",
     ageConfirmed: false,
   });
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
+  const [premiumAmount, setPremiumAmount] = useState(0);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const calculatePremiumAmount = () => {
+    const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+    const endDate = formData.endDate || formData.startDate; // If no end date, assume same day
+    const endDateTime = new Date(`${endDate}T${formData.endTime}`);
+
+    if (endDateTime <= startDateTime) {
+      return 0; // Invalid, but shouldn't happen
+    }
+
+    const hours = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
+    if (hours >= 72) {
+      return 1500;
+    } else {
+      return 500; // Minimum for 24hrs and below 72hrs
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +86,13 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
       return;
     }
 
+    // Show premium dialog
+    const amount = calculatePremiumAmount();
+    setPremiumAmount(amount);
+    setShowPremiumDialog(true);
+  };
+
+  const handleFreePost = async () => {
     try {
       // Prepare job data
       const jobData = {
@@ -81,7 +108,8 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
         phone_number: formData.phoneNumber,
         description: formData.description || null,
         age_confirmed: formData.ageConfirmed,
-        status: 'active'
+        status: 'active',
+        is_premium: false
       };
 
       // Save to Supabase
@@ -104,22 +132,7 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
         description: "Your job posting has been submitted for review. We'll contact you soon.",
       });
 
-      // Reset form and close modal
-      setFormData({
-        jobTitle: "",
-        location: "",
-        paymentType: "",
-        paymentAmount: "",
-        jobType: "",
-        startDate: "",
-        endDate: "",
-        startTime: "",
-        endTime: "",
-        phoneNumber: "",
-        description: "",
-        ageConfirmed: false,
-      });
-      onClose();
+      resetAndClose();
     } catch (error) {
       console.error('Error posting job:', error);
       toast({
@@ -128,6 +141,111 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handlePremiumPost = async () => {
+    setIsProcessingPayment(true);
+    try {
+      // Call Supabase Edge Function for STK Push
+      const { data, error } = await supabase.functions.invoke('stk-push', {
+        body: {
+          phone: formData.phoneNumber,
+          amount: premiumAmount
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.ResponseCode === '0') {
+        toast({
+          title: "Payment Initiated",
+          description: "Please check your phone and enter your M-Pesa PIN to complete the payment.",
+        });
+
+        // For now, assume success and post the job
+        // In production, wait for callback or check status
+        await postPremiumJob();
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: "Failed to initiate payment. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Error",
+        description: "An error occurred while processing payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const postPremiumJob = async () => {
+    try {
+      const jobData = {
+        job_title: formData.jobTitle,
+        location: formData.location,
+        payment_type: formData.paymentType,
+        payment_amount: parseFloat(formData.paymentAmount),
+        job_type: formData.jobType,
+        start_date: formData.startDate,
+        end_date: formData.endDate || null,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
+        phone_number: formData.phoneNumber,
+        description: formData.description || null,
+        age_confirmed: formData.ageConfirmed,
+        status: 'active',
+        is_premium: true
+      };
+
+      const { error } = await supabase
+        .from('jobs')
+        .insert([jobData]);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Premium Job Posted Successfully!",
+        description: "Your premium job posting is now live and will get more visibility.",
+      });
+
+      resetAndClose();
+    } catch (error) {
+      console.error('Error posting premium job:', error);
+      toast({
+        title: "Error",
+        description: "Failed to post premium job. Please contact support.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetAndClose = () => {
+    setFormData({
+      jobTitle: "",
+      location: "",
+      paymentType: "",
+      paymentAmount: "",
+      jobType: "",
+      startDate: "",
+      endDate: "",
+      startTime: "",
+      endTime: "",
+      phoneNumber: "",
+      description: "",
+      ageConfirmed: false,
+    });
+    setShowPremiumDialog(false);
+    onClose();
   };
 
   return (
@@ -330,6 +448,38 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
             </Button>
           </div>
         </form>
+
+        {/* Premium Dialog */}
+        {showPremiumDialog && (
+          <Dialog open={showPremiumDialog} onOpenChange={() => setShowPremiumDialog(false)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Choose Posting Option</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg">
+                  <h3 className="font-semibold">Free Posting</h3>
+                  <p className="text-sm text-muted-foreground">Basic visibility for your job posting.</p>
+                  <Button onClick={handleFreePost} className="mt-2 w-full" variant="outline">
+                    Post Free
+                  </Button>
+                </div>
+                <div className="p-4 border rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50">
+                  <h3 className="font-semibold text-orange-600">Premium Posting</h3>
+                  <p className="text-sm text-muted-foreground">Enhanced visibility and priority placement.</p>
+                  <p className="text-lg font-bold text-orange-600">KSh {premiumAmount}</p>
+                  <Button
+                    onClick={handlePremiumPost}
+                    className="mt-2 w-full bg-orange-600 hover:bg-orange-700"
+                    disabled={isProcessingPayment}
+                  >
+                    {isProcessingPayment ? "Processing..." : `Pay KSh ${premiumAmount}`}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   );
