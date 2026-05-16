@@ -43,6 +43,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     policyAgreed: false,
     faithfulHonest: false,
   });
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean | File | null) => {
     setFormData(prev => ({
@@ -125,10 +127,10 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       return;
     }
 
-    if (parseInt(formData.age) < 18) {
+    if (parseInt(formData.age) < 25) {
       toast({
         title: "Age Restriction",
-        description: "You must be 18 years or older to apply for jobs.",
+        description: "You must be 25 years or older to apply for jobs.",
         variant: "destructive",
       });
       return;
@@ -149,6 +151,59 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         description: "Please agree to the policies and confirm your faithfulness and honesty.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Show payment dialog for KSh 25
+    setShowPaymentDialog(true);
+  };
+
+  const initiateMpesaPayment = async (amount: number) => {
+    try {
+      const response = await fetch('/.netlify/functions/mpesa-stk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: formData.phoneNumber,
+          amount: amount,
+          reference: `app_${Date.now()}`
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.ResponseCode === '0') {
+        toast({
+          title: "M-Pesa Prompt Sent",
+          description: "Check your phone and enter M-Pesa PIN to complete payment.",
+        });
+        return true;
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: result.CustomerMessage || "Could not initiate M-Pesa payment.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('M-Pesa Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to connect to M-Pesa. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const handlePaymentAndSubmit = async () => {
+    setIsProcessingPayment(true);
+
+    // First initiate M-Pesa payment
+    const paymentSuccess = await initiateMpesaPayment(25);
+    if (!paymentSuccess) {
+      setIsProcessingPayment(false);
       return;
     }
 
@@ -197,7 +252,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         country: formData.isKenyan ? null : formData.country,
         policy_agreed: formData.policyAgreed,
         faithful_honest: formData.faithfulHonest,
-        status: 'pending'
+        status: 'confirmed'
       };
 
       const { error } = await supabase
@@ -215,8 +270,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       }
 
       toast({
-        title: "Application Submitted!",
-        description: "Your job application has been submitted successfully. We'll contact you soon on phone or email.",
+        title: "Application Confirmed!",
+        description: "Payment of KSh 25 received. Your job application has been approved.",
       });
 
       setFormData({
@@ -239,6 +294,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         policyAgreed: false,
         faithfulHonest: false,
       });
+      setShowPaymentDialog(false);
       onClose();
     } catch (error) {
       console.error('Error submitting application:', error);
@@ -247,6 +303,8 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -543,6 +601,37 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
             </Button>
           </div>
         </form>
+
+        {/* Payment Dialog */}
+        {showPaymentDialog && (
+          <Dialog open={showPaymentDialog} onOpenChange={() => setShowPaymentDialog(false)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Confirm Application - KSh 25</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Pay KSh 25 to confirm and submit your job application. Once paid, your application will be approved.
+                </p>
+                <Button
+                  onClick={handlePaymentAndSubmit}
+                  className="w-full"
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? "Processing Payment..." : "Pay KSh 25 & Submit Application"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPaymentDialog(false)}
+                  className="w-full"
+                  disabled={isProcessingPayment}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   );

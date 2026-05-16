@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,8 +32,8 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
     description: "",
     ageConfirmed: false,
   });
-  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const [premiumAmount, setPremiumAmount] = useState(0);
+  const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -41,23 +41,6 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
       ...prev,
       [field]: value
     }));
-  };
-
-  const calculatePremiumAmount = () => {
-    const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
-    const endDate = formData.endDate || formData.startDate; // If no end date, assume same day
-    const endDateTime = new Date(`${endDate}T${formData.endTime}`);
-
-    if (endDateTime <= startDateTime) {
-      return 0; // Invalid, but shouldn't happen
-    }
-
-    const hours = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
-    if (hours >= 72) {
-      return 1500;
-    } else {
-      return 500; // Minimum for 24hrs and below 72hrs
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,94 +69,62 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
       return;
     }
 
-    // Show premium dialog
-    const amount = calculatePremiumAmount();
-    setPremiumAmount(amount);
+    // Show premium packages dialog (mandatory)
+    const payAmount = parseFloat(formData.paymentAmount) || 0;
+    const fee = payAmount < 1500 ? 250 : 550;
+    setPremiumAmount(fee);
     setShowPremiumDialog(true);
   };
 
-  const handleFreePost = async () => {
-    try {
-      // Prepare job data
-      const jobData = {
-        job_title: formData.jobTitle,
-        location: formData.location,
-        payment_type: formData.paymentType,
-        payment_amount: parseFloat(formData.paymentAmount),
-        job_type: formData.jobType,
-        start_date: formData.startDate,
-        end_date: formData.endDate || null,
-        start_time: formData.startTime,
-        end_time: formData.endTime,
-        phone_number: formData.phoneNumber,
-        description: formData.description || null,
-        age_confirmed: formData.ageConfirmed,
-        status: 'active',
-        is_premium: false
-      };
-
-      // Save to Supabase
-      const { error } = await supabase
-        .from('jobs')
-        .insert([jobData]);
-
-      if (error) {
-        console.error('Supabase error:', error);
-        // Check if it's a connection error (project paused)
-        if (error.message?.includes('connection') || error.message?.includes('timeout')) {
-          toast({
-            title: "Connection Error",
-            description: "Database is temporarily unavailable. Job will be posted when connection is restored.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Submission Error",
-            description: "Failed to post job. Please try again.",
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-
-      toast({
-        title: "Job Posted Successfully!",
-        description: "Your job posting has been submitted for review. We'll contact you soon.",
-      });
-
-      resetAndClose();
-    } catch (error) {
-      console.error('Error posting job:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePremiumPost = async () => {
+  const initiateMpesaPayment = async (amount: number) => {
     setIsProcessingPayment(true);
     try {
-      // For now, show a message that premium posting will be available soon
-      // and post as free job with premium flag
-      toast({
-        title: "Premium Feature Coming Soon",
-        description: "M-Pesa integration will be available after Supabase project is unpaused. Posting as premium job.",
+      const response = await fetch('/.netlify/functions/mpesa-stk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: formData.phoneNumber,
+          amount: amount,
+          reference: `job_${Date.now()}`
+        })
       });
 
-      // Temporarily post as premium without payment
-      await postPremiumJob();
+      const result = await response.json();
+
+      if (result.ResponseCode === '0') {
+        toast({
+          title: "M-Pesa Prompt Sent",
+          description: "Check your phone and enter M-Pesa PIN to complete payment.",
+        });
+        
+        // For now, we post the job after sending STK (callback will handle verification later)
+        setTimeout(async () => {
+          await postPremiumJob();
+        }, 3000);
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: result.CustomerMessage || "Could not initiate M-Pesa payment.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error('Error posting premium job:', error);
+      console.error('M-Pesa Error:', error);
       toast({
         title: "Error",
-        description: "Failed to post premium job. Please try again.",
+        description: "Failed to connect to M-Pesa. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsProcessingPayment(false);
+      setShowPremiumDialog(false);
     }
+  };
+
+  const handlePremiumPost = async (selectedAmount?: number) => {
+    const amountToPay = selectedAmount || premiumAmount;
+    if (selectedAmount) setPremiumAmount(selectedAmount);
+    await initiateMpesaPayment(amountToPay);
   };
 
   const postPremiumJob = async () => {
@@ -257,6 +208,9 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
             <DollarSign className="w-5 h-5" />
             Post a Job
           </DialogTitle>
+          <DialogDescription>
+            Fill in the details below to post your job. All fields marked with * are required.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -450,31 +404,55 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
           </div>
         </form>
 
-        {/* Premium Dialog */}
+        {/* Premium Packages Dialog - Mandatory */}
         {showPremiumDialog && (
           <Dialog open={showPremiumDialog} onOpenChange={() => setShowPremiumDialog(false)}>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Choose Posting Option</DialogTitle>
+                <DialogTitle>Choose Premium Package</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="p-4 border rounded-lg">
-                  <h3 className="font-semibold">Free Posting</h3>
-                  <p className="text-sm text-muted-foreground">Basic visibility for your job posting.</p>
-                  <Button onClick={handleFreePost} className="mt-2 w-full" variant="outline">
-                    Post Free
+                <p className="text-sm text-muted-foreground">
+                  All job postings require a premium package for visibility.
+                </p>
+
+                {/* Package 250 */}
+                <div className="p-4 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => handlePremiumPost(250)}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">Premium Package</h3>
+                      <p className="text-sm text-muted-foreground">For jobs paying below KSh 1,500</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-primary">KSh 250</p>
+                    </div>
+                  </div>
+                  <Button 
+                    className="mt-3 w-full" 
+                    disabled={isProcessingPayment}
+                    onClick={(e) => { e.stopPropagation(); handlePremiumPost(250); }}
+                  >
+                    {isProcessingPayment && premiumAmount === 250 ? "Processing..." : "Select & Pay KSh 250"}
                   </Button>
                 </div>
-                <div className="p-4 border rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50">
-                  <h3 className="font-semibold text-orange-600">Premium Posting</h3>
-                  <p className="text-sm text-muted-foreground">Enhanced visibility and priority placement.</p>
-                  <p className="text-lg font-bold text-orange-600">KSh {premiumAmount}</p>
-                  <Button
-                    onClick={handlePremiumPost}
-                    className="mt-2 w-full bg-orange-600 hover:bg-orange-700"
+
+                {/* Package 550 */}
+                <div className="p-4 border rounded-lg hover:bg-accent cursor-pointer" onClick={() => handlePremiumPost(550)}>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">Premium Package</h3>
+                      <p className="text-sm text-muted-foreground">For jobs paying KSh 1,500 and above</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-primary">KSh 550</p>
+                    </div>
+                  </div>
+                  <Button 
+                    className="mt-3 w-full" 
                     disabled={isProcessingPayment}
+                    onClick={(e) => { e.stopPropagation(); handlePremiumPost(550); }}
                   >
-                    {isProcessingPayment ? "Processing..." : `Pay KSh ${premiumAmount}`}
+                    {isProcessingPayment && premiumAmount === 550 ? "Processing..." : "Select & Pay KSh 550"}
                   </Button>
                 </div>
               </div>
