@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Phone, MapPin, Calendar, Clock, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+
+declare global {
+  interface Window {
+    paypal: {
+      Buttons: (config: any) => { render: (selector: string) => void };
+    };
+  }
+}
 
 interface PostJobModalProps {
   isOpen: boolean;
@@ -76,55 +84,44 @@ const PostJobModal = ({ isOpen, onClose }: PostJobModalProps) => {
     setShowPremiumDialog(true);
   };
 
-  const initiateMpesaPayment = async (amount: number) => {
+  const initiatePayPalPayment = async (amount: number) => {
     setIsProcessingPayment(true);
     try {
-      const response = await fetch('/.netlify/functions/mpesa-stk', {
+      const response = await fetch('/.netlify/functions/paypal-create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: formData.phoneNumber,
           amount: amount,
-          reference: `job_${Date.now()}`
+          description: `Premium Job Posting - ${formData.jobTitle}`
         })
       });
 
       const result = await response.json();
 
-      if (result.ResponseCode === '0') {
-        toast({
-          title: "M-Pesa Prompt Sent",
-          description: "Check your phone and enter M-Pesa PIN to complete payment.",
-        });
-        
-        // For now, we post the job after sending STK (callback will handle verification later)
-        setTimeout(async () => {
-          await postPremiumJob();
-        }, 3000);
+      if (result.orderID) {
+        localStorage.setItem('pendingJobData', JSON.stringify({
+          ...formData,
+          premiumAmount: amount
+        }));
+        window.location.href = result.approveUrl;
       } else {
-        toast({
-          title: "Payment Failed",
-          description: result.CustomerMessage || "Could not initiate M-Pesa payment.",
-          variant: "destructive",
-        });
+        throw new Error('Failed to create PayPal order');
       }
     } catch (error) {
-      console.error('M-Pesa Error:', error);
+      console.error('PayPal Error:', error);
       toast({
-        title: "Error",
-        description: "Failed to connect to M-Pesa. Please try again.",
+        title: "Payment Error",
+        description: "Failed to initiate PayPal payment. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsProcessingPayment(false);
-      setShowPremiumDialog(false);
     }
   };
 
   const handlePremiumPost = async (selectedAmount?: number) => {
     const amountToPay = selectedAmount || premiumAmount;
     if (selectedAmount) setPremiumAmount(selectedAmount);
-    await initiateMpesaPayment(amountToPay);
+    await initiatePayPalPayment(amountToPay);
   };
 
   const postPremiumJob = async () => {

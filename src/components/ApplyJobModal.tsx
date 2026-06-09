@@ -158,154 +158,62 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
     setShowPaymentDialog(true);
   };
 
-  const initiateMpesaPayment = async (amount: number) => {
-    try {
-      const response = await fetch('/.netlify/functions/mpesa-stk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: formData.phoneNumber,
-          amount: amount,
-          reference: `app_${Date.now()}`
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.ResponseCode === '0') {
-        toast({
-          title: "M-Pesa Prompt Sent",
-          description: "Check your phone and enter M-Pesa PIN to complete payment.",
-        });
-        return true;
-      } else {
-        toast({
-          title: "Payment Failed",
-          description: result.CustomerMessage || "Could not initiate M-Pesa payment.",
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('M-Pesa Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to connect to M-Pesa. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const handlePaymentAndSubmit = async () => {
-    setIsProcessingPayment(true);
-
-    // First initiate M-Pesa payment
-    const paymentSuccess = await initiateMpesaPayment(25);
-    if (!paymentSuccess) {
-      setIsProcessingPayment(false);
-      return;
-    }
-
+  const initiatePayPalPayment = async (amount: number) => {
     try {
       let idCardData: string | null = null;
       let birthCertificateData: string | null = null;
 
       if (formData.idCard) {
-        const reader = new FileReader();
-        idCardData = await new Promise((resolve, reject) => {
+        idCardData = await new Promise((resolve) => {
+          const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
           reader.readAsDataURL(formData.idCard);
-        }) as string;
+        });
       }
 
       if (formData.birthCertificate) {
-        const reader = new FileReader();
-        birthCertificateData = await new Promise((resolve, reject) => {
+        birthCertificateData = await new Promise((resolve) => {
+          const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
           reader.readAsDataURL(formData.birthCertificate);
-        }) as string;
-      }
-
-      const applicationData = {
-        job_title: jobDetails?.title || '',
-        job_location: jobDetails?.location || null,
-        job_pay: jobDetails?.pay || null,
-        job_type: jobDetails?.type || null,
-        full_name: formData.fullName,
-        email: formData.email,
-        age: formData.age,
-        gender: formData.gender,
-        education_level: formData.educationLevel,
-        location: formData.location,
-        phone_number: formData.phoneNumber,
-        parent_guardian_name: formData.parentGuardianName,
-        brother_sister_name: formData.brotherSisterName,
-        has_id: formData.hasId,
-        id_number: formData.hasId ? formData.idNumber : null,
-        id_card_url: idCardData,
-        has_birth_certificate: formData.hasBirthCertificate,
-        birth_certificate_url: birthCertificateData,
-        is_kenyan: formData.isKenyan,
-        country: formData.isKenyan ? null : formData.country,
-        policy_agreed: formData.policyAgreed,
-        faithful_honest: formData.faithfulHonest,
-        status: 'confirmed'
-      };
-
-      const { error } = await supabase
-        .from('job_applications')
-        .insert([applicationData]);
-
-      if (error) {
-        console.error('Supabase error:', error);
-        toast({
-          title: "Submission Error",
-          description: "Failed to submit application. Please try again.",
-          variant: "destructive",
         });
-        return;
       }
 
-      toast({
-        title: "Application Confirmed!",
-        description: "Payment of KSh 25 received. Your job application has been approved.",
+      const response = await fetch('/.netlify/functions/paypal-create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amount,
+          description: `Job Application Fee - ${jobDetails?.title}`
+        })
       });
 
-      setFormData({
-        fullName: "",
-        email: "",
-        age: "",
-        gender: "",
-        educationLevel: "",
-        location: "",
-        phoneNumber: "",
-        parentGuardianName: "",
-        brotherSisterName: "",
-        hasId: true,
-        idNumber: "",
-        idCard: null,
-        hasBirthCertificate: false,
-        birthCertificate: null,
-        isKenyan: true,
-        country: "",
-        policyAgreed: false,
-        faithfulHonest: false,
-      });
-      setShowPaymentDialog(false);
-      onClose();
+      const result = await response.json();
+
+      if (result.orderID) {
+        localStorage.setItem('pendingApplicationData', JSON.stringify({
+          ...formData,
+          idCard: idCardData,
+          birthCertificate: birthCertificateData,
+          jobDetails
+        }));
+        window.location.href = result.approveUrl;
+      } else {
+        throw new Error('Failed to create PayPal order');
+      }
     } catch (error) {
-      console.error('Error submitting application:', error);
+      console.error('PayPal Error:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Payment Error",
+        description: "Failed to initiate PayPal payment. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessingPayment(false);
     }
+  };
+
+  const handlePaymentAndSubmit = async () => {
+    setIsProcessingPayment(true);
+    await initiatePayPalPayment(25);
   };
 
   return (

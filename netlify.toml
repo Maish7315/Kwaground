@@ -1,6 +1,11 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  node_version = "18"
 
 [[redirects]]
   from = "/.netlify/functions/*"
@@ -21,7 +26,7 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://ezujitcsjhsmuyhynavy.supabase.co https://unpkg.com https://*.tile.openstreetmap.org;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://ezujitcsjhsmuyhynavy.supabase.co https://unpkg.com https://*.tile.openstreetmap.org https://api.sandbox.paypal.com https://api.paypal.com;"
 
 [[headers]]
   for = "*.js"
