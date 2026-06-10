@@ -203,6 +203,7 @@ const ApplyJobModal = ({ isOpen, onClose, jobDetails }: ApplyJobModalProps) => {
       }
     } catch (error) {
       console.error('PayPal Error:', error);
+      setIsProcessingPayment(false);
       toast({
         title: "Payment Error",
         description: "Failed to initiate PayPal payment. Please try again.",

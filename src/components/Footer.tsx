@@ -78,7 +78,7 @@ const Footer = () => {
 
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-muted-foreground">
-            © 2025 KwaGround. All rights reserved. Built for Kenyan youth.
+            © 2026 KwaGround. All rights reserved. Built for Kenyan youth.
           </p>
         </div>
       </div>
